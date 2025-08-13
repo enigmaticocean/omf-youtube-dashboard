@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "pages/api/sync-youtube.js": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/sync-youtube",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
