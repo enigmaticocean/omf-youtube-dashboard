@@ -1,90 +1,122 @@
-import fs from 'fs';
-import path from 'path';
-
-const DATA_DIR = '/tmp/data';
-
-function getDateString(daysAgo = 0) {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString().split('T')[0];
-}
-
-function loadDataFile(date) {
+export default async function handler(req, res) {
   try {
-    const filePath = path.join(DATA_DIR, `${date}.json`);
-    if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    }
-  } catch (error) {
-    console.error(`Error loading data for ${date}:`, error);
-  }
-  return null;
-}
-
-export default function handler(req, res) {
-  try {
-    // Get today's data
-    const today = getDateString(0);
-    const yesterday = getDateString(1);
-    const lastWeek = getDateString(7);
-    const lastMonth = getDateString(30);
-
-    const todayData = loadDataFile(today);
-    const yesterdayData = loadDataFile(yesterday);
-    const lastWeekData = loadDataFile(lastWeek);
-    const lastMonthData = loadDataFile(lastMonth);
-
-    if (!todayData) {
-      return res.status(404).json({ 
-        error: 'No data available. Run sync first.' 
+    // Since file storage doesn't persist in serverless, 
+    // let's redirect to fetch fresh data from YouTube API
+    const API_KEY = process.env.YOUTUBE_API_KEY;
+    const CHANNEL_ID = process.env.CHANNEL_ID;
+    
+    if (!API_KEY || !CHANNEL_ID) {
+      return res.status(500).json({ 
+        error: 'Missing YouTube API credentials' 
       });
     }
 
-    // Calculate comparisons
-    const comparisons = {
-      yesterday: yesterdayData ? {
-        views: todayData.summary.totalViews - yesterdayData.summary.totalViews,
-        videos: todayData.summary.totalVideos - yesterdayData.summary.totalVideos,
-        avgViews: todayData.summary.avgViews - yesterdayData.summary.avgViews
-      } : null,
-      lastWeek: lastWeekData ? {
-        views: todayData.summary.totalViews - lastWeekData.summary.totalViews,
-        videos: todayData.summary.totalVideos - lastWeekData.summary.totalVideos,
-        avgViews: todayData.summary.avgViews - lastWeekData.summary.avgViews
-      } : null,
-      lastMonth: lastMonthData ? {
-        views: todayData.summary.totalViews - lastMonthData.summary.totalViews,
-        videos: todayData.summary.totalVideos - lastMonthData.summary.totalVideos,
-        avgViews: todayData.summary.avgViews - lastMonthData.summary.avgViews
-      } : null
+    // Get channel info
+    const channelResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${CHANNEL_ID}&key=${API_KEY}`
+    );
+    const channelData = await channelResponse.json();
+
+    // Get videos from the channel
+    const videosResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&maxResults=50&order=date&type=video&key=${API_KEY}`
+    );
+    const videosData = await videosResponse.json();
+
+    // Get detailed stats for each video
+    const videoIds = videosData.items?.map(item => item.id.videoId).join(',');
+    const statsResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${API_KEY}`
+    );
+    const statsData = await statsResponse.json();
+
+    // Process the data (same logic as sync)
+    const processedVideos = statsData.items?.map(video => ({
+      id: video.id,
+      title: video.snippet.title,
+      publishedAt: video.snippet.publishedAt,
+      views: parseInt(video.statistics.viewCount) || 0,
+      likes: parseInt(video.statistics.likeCount) || 0,
+      comments: parseInt(video.statistics.commentCount) || 0,
+      category: categorizeVideo(video.snippet.title, video.snippet.description || '')
+    })) || [];
+
+    // Calculate category counts
+    const categoryCounts = processedVideos.reduce((acc, video) => {
+      acc[video.category] = (acc[video.category] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Calculate totals
+    const totalViews = processedVideos.reduce((sum, v) => sum + v.views, 0);
+    const totalVideos = processedVideos.length;
+    const avgViews = Math.round(totalViews / Math.max(totalVideos, 1));
+
+    const currentData = {
+      date: new Date().toISOString().split('T')[0],
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalViews,
+        totalVideos,
+        avgViews,
+        totalLikes: processedVideos.reduce((sum, v) => sum + v.likes, 0),
+        totalComments: processedVideos.reduce((sum, v) => sum + v.comments, 0),
+        recentVideos: processedVideos.length
+      },
+      videos: processedVideos,
+      categories: Object.entries(categoryCounts).map(([category, count]) => ({
+        category,
+        count
+      })),
+      channel: {
+        name: channelData.items?.[0]?.snippet?.title || 'Unknown',
+        subscriberCount: parseInt(channelData.items?.[0]?.statistics?.subscriberCount) || 0,
+        videoCount: parseInt(channelData.items?.[0]?.statistics?.videoCount) || 0,
+        viewCount: parseInt(channelData.items?.[0]?.statistics?.viewCount) || 0
+      }
     };
 
-    // Get historical trend data
-    const trendData = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = getDateString(i);
-      const data = loadDataFile(date);
-      if (data) {
-        trendData.push({
-          date,
-          views: data.summary.totalViews,
-          videos: data.summary.totalVideos,
-          avgViews: data.summary.avgViews
-        });
-      }
-    }
-
     res.status(200).json({
-      current: todayData,
-      comparisons,
-      trends: trendData,
-      lastUpdated: todayData.timestamp
+      current: currentData,
+      comparisons: {
+        yesterday: null,
+        lastWeek: null,
+        lastMonth: null
+      },
+      trends: [
+        {
+          date: currentData.date,
+          views: currentData.summary.totalViews,
+          videos: currentData.summary.totalVideos,
+          avgViews: currentData.summary.avgViews
+        }
+      ],
+      lastUpdated: currentData.timestamp
     });
 
   } catch (error) {
     console.error('Dashboard data error:', error);
     res.status(500).json({ 
-      error: 'Failed to load dashboard data' 
+      error: 'Failed to load dashboard data: ' + error.message 
     });
   }
+}
+
+function categorizeVideo(title, description) {
+  const text = (title + ' ' + description).toLowerCase();
+  
+  if (text.includes('testimony') || text.includes('story') || text.includes('personal')) {
+    return 'Testimony/Personal Story';
+  } else if (text.includes('introduction') || text.includes('program')) {
+    return 'Program Introduction';
+  } else if (text.includes('cultural') || text.includes('culture')) {
+    return 'Cultural Reflection';
+  } else if (text.includes('virtual') || text.includes('experience')) {
+    return 'Virtual Experience';
+  } else if (text.includes('promotional') || text.includes('intro')) {
+    return 'Promotional/Intro';
+  } else if (text.includes('mission') || text.includes('outreach')) {
+    return 'Mission/Outreach';
+  }
+  return 'Other';
 }
