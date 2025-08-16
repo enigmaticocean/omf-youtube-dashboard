@@ -619,14 +619,21 @@ const Dashboard = () => {
       boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
       padding: '1.5rem'
     }}>
-      <h3 style={{
-        fontSize: '1.125rem',
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: '1rem'
-      }}>
-        Total Views Over Time (30 Days)
-      </h3>
+     <h3 style={{
+  fontSize: '1.125rem',
+  fontWeight: '600',
+  color: '#111827',
+  marginBottom: '0.5rem'
+}}>
+  Cumulative Channel Views, Not Daily Views (30 Days)
+</h3>
+<p style={{
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  marginBottom: '1rem'
+}}>
+  Shows total accumulated views across all videos over time.
+</p>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data.trends}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -637,7 +644,7 @@ const Dashboard = () => {
           />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip 
-            formatter={(value) => [formatNumber(value), 'Total Views']}
+           formatter={(value) => [formatNumber(value), 'Cumulative Views']}
             labelFormatter={(label) => new Date(label).toLocaleDateString()}
           />
           <Line 
