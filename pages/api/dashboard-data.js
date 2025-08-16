@@ -1,3 +1,42 @@
+function convertYouTubeDuration(duration) {
+  if (!duration) return 0;
+  
+  // YouTube duration format: PT4M13S = 4 minutes 13 seconds
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  
+  const hours = parseInt(match[1]) || 0;
+  const minutes = parseInt(match[2]) || 0;
+  const seconds = parseInt(match[3]) || 0;
+  
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function categorizeVideo(title, description, duration) {
+  const titleLower = title.toLowerCase();
+  
+  // Check for hashtag categories first
+  if (titleLower.includes('#short')) {
+    return 'Short';
+  }
+  
+  if (titleLower.includes('#podcast')) {
+    return 'Podcast Promo';
+  }
+  
+  if (titleLower.includes('#missionarymoment')) {
+    return 'Missionary Moment';
+  }
+  
+  // Check if it's a podcast episode based on duration (20+ minutes = 1200+ seconds)
+  if (duration && duration >= 1200) {
+    return 'Podcast Episode';
+  }
+  
+  // Everything else is Other
+  return 'Other';
+}
+
 export default async function handler(req, res) {
   try {
     // Since file storage doesn't persist in serverless, 
@@ -23,23 +62,29 @@ export default async function handler(req, res) {
     );
     const videosData = await videosResponse.json();
 
-    // Get detailed stats for each video
+    // Get detailed stats for each video INCLUDING DURATION
     const videoIds = videosData.items?.map(item => item.id.videoId).join(',');
     const statsResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${API_KEY}`
+      `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet,contentDetails&id=${videoIds}&key=${API_KEY}`
     );
     const statsData = await statsResponse.json();
 
-    // Process the data (same logic as sync)
-    const processedVideos = statsData.items?.map(video => ({
-      id: video.id,
-      title: video.snippet.title,
-      publishedAt: video.snippet.publishedAt,
-      views: parseInt(video.statistics.viewCount) || 0,
-      likes: parseInt(video.statistics.likeCount) || 0,
-      comments: parseInt(video.statistics.commentCount) || 0,
-      category: categorizeVideo(video.snippet.title, video.snippet.description || '')
-    })) || [];
+    // Process the data
+    const processedVideos = statsData.items?.map(video => {
+      // Convert YouTube duration format (PT4M13S) to seconds
+      const duration = convertYouTubeDuration(video.contentDetails?.duration);
+      
+      return {
+        id: video.id,
+        title: video.snippet.title,
+        publishedAt: video.snippet.publishedAt,
+        views: parseInt(video.statistics.viewCount) || 0,
+        likes: parseInt(video.statistics.likeCount) || 0,
+        comments: parseInt(video.statistics.commentCount) || 0,
+        duration: duration,
+        category: categorizeVideo(video.snippet.title, video.snippet.description || '', duration)
+      };
+    }) || [];
 
     // Calculate category counts
     const categoryCounts = processedVideos.reduce((acc, video) => {
@@ -100,29 +145,4 @@ export default async function handler(req, res) {
       error: 'Failed to load dashboard data: ' + error.message 
     });
   }
-}
-
-function categorizeVideo(title, description, duration) {
-  const titleLower = title.toLowerCase();
-  
-  // Check for hashtag categories first
-  if (titleLower.includes('#short')) {
-    return 'Short';
-  }
-  
-  if (titleLower.includes('#podcast')) {
-    return 'Podcast Promo';
-  }
-  
-  if (titleLower.includes('#missionarymoment')) {
-    return 'Missionary Moment';
-  }
-  
-  // Check if it's a podcast episode based on duration (20+ minutes = 1200+ seconds)
-  if (duration && duration >= 1200) {
-    return 'Podcast Episode';
-  }
-  
-  // Everything else is Other
-  return 'Other';
 }
