@@ -673,28 +673,51 @@ const Dashboard = () => {
       }}>
         Video Publishing Activity
       </h3>
-      <ResponsiveContainer width="100%" height={250}>
-        <AreaChart data={data.trends}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis 
-            dataKey="date" 
-            tick={{ fontSize: 12 }}
-            tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          />
-          <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip 
-            formatter={(value) => [value, 'Videos Published']}
-            labelFormatter={(label) => new Date(label).toLocaleDateString()}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="newVideos" 
-            stroke="#10b981" 
-            fill="#10b981" 
-            fillOpacity={0.3} 
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+<ResponsiveContainer width="100%" height={250}>
+  <AreaChart data={data.trends}>
+    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+    <XAxis 
+      dataKey="date" 
+      tick={{ fontSize: 12 }}
+      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+    />
+    <YAxis tick={{ fontSize: 12 }} />
+    <Tooltip 
+      formatter={(value, name, props) => {
+        const date = props.payload.date;
+        const videosOnDate = data.current.videos.filter(video => 
+          video.publishedAt.split('T')[0] === date
+        );
+        
+        if (videosOnDate.length === 0) {
+          return [value, 'Videos Published'];
+        }
+        
+        const videoTitles = videosOnDate.map(video => `• ${video.title}`).join('\n');
+        return [
+          `${value} video${value !== 1 ? 's' : ''} published:\n${videoTitles}`,
+          'Videos Published'
+        ];
+      }}
+      labelFormatter={(label) => new Date(label).toLocaleDateString()}
+      contentStyle={{
+        backgroundColor: 'white',
+        border: '1px solid #e2e8f0',
+        borderRadius: '0.375rem',
+        padding: '0.75rem',
+        maxWidth: '400px',
+        whiteSpace: 'pre-line'
+      }}
+    />
+    <Area 
+      type="monotone" 
+      dataKey="newVideos" 
+      stroke="#10b981" 
+      fill="#10b981" 
+      fillOpacity={0.3} 
+    />
+  </AreaChart>
+</ResponsiveContainer>
     </div>
 
     {/* Performance Summary */}
