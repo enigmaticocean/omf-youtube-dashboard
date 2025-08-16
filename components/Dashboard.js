@@ -610,119 +610,208 @@ const Dashboard = () => {
           </div>
         )}
 
-        {activeTab === 'trends' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '0.5rem',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-              padding: '1.5rem'
-            }}>
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: '#111827',
-                marginBottom: '1rem'
-              }}>
-                Channel Performance Overview
-              </h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1rem'
-              }}>
-                <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-                  <p style={{ fontWeight: '500', color: '#111827' }}>Total Channel Views</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
-                    {formatNumber(data.current.channel.viewCount)}
-                  </p>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-                  <p style={{ fontWeight: '500', color: '#111827' }}>Total Channel Videos</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
-                    {data.current.channel.videoCount}
-                  </p>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-                  <p style={{ fontWeight: '500', color: '#111827' }}>Most Popular Category</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
-                    {data.current.categories.sort((a, b) => b.count - a.count)[0]?.category || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
+      {activeTab === 'trends' && (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    {/* Views Growth Chart */}
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+      padding: '1.5rem'
+    }}>
+      <h3 style={{
+        fontSize: '1.125rem',
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: '1rem'
+      }}>
+        Total Views Over Time (30 Days)
+      </h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={data.trends}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis 
+            dataKey="date" 
+            tick={{ fontSize: 12 }}
+            tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          />
+          <YAxis tick={{ fontSize: 12 }} />
+          <Tooltip 
+            formatter={(value) => [formatNumber(value), 'Total Views']}
+            labelFormatter={(label) => new Date(label).toLocaleDateString()}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="views" 
+            stroke="#475569" 
+            strokeWidth={3}
+            dot={{ fill: '#475569', strokeWidth: 2, r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
 
-            {/* Category Performance */}
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '0.5rem',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-              padding: '1.5rem'
+    {/* Video Count Growth */}
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+      padding: '1.5rem'
+    }}>
+      <h3 style={{
+        fontSize: '1.125rem',
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: '1rem'
+      }}>
+        Video Publishing Activity
+      </h3>
+      <ResponsiveContainer width="100%" height={250}>
+        <AreaChart data={data.trends}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis 
+            dataKey="date" 
+            tick={{ fontSize: 12 }}
+            tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          />
+          <YAxis tick={{ fontSize: 12 }} />
+          <Tooltip 
+            formatter={(value) => [value, 'Videos Published']}
+            labelFormatter={(label) => new Date(label).toLocaleDateString()}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="newVideos" 
+            stroke="#10b981" 
+            fill="#10b981" 
+            fillOpacity={0.3} 
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* Performance Summary */}
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+      padding: '1.5rem'
+    }}>
+      <h3 style={{
+        fontSize: '1.125rem',
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: '1rem'
+      }}>
+        30-Day Performance Summary
+      </h3>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1rem'
+      }}>
+        <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
+          <p style={{ fontWeight: '500', color: '#111827' }}>Videos Published</p>
+          <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
+            {data.trends.reduce((sum, day) => sum + (day.newVideos || 0), 0)}
+          </p>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Last 30 days</p>
+        </div>
+        
+        <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
+          <p style={{ fontWeight: '500', color: '#111827' }}>Total Growth</p>
+          <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
+            {data.trends.length > 1 ? 
+              formatNumber(data.trends[data.trends.length - 1].views - data.trends[0].views) 
+              : '0'
+            }
+          </p>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Views gained</p>
+        </div>
+        
+        <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
+          <p style={{ fontWeight: '500', color: '#111827' }}>Most Popular Category</p>
+          <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
+            {data.current.categories.sort((a, b) => b.count - a.count)[0]?.category || 'N/A'}
+          </p>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            {data.current.categories.sort((a, b) => b.count - a.count)[0]?.count || 0} videos
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {/* Category Performance */}
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+      padding: '1.5rem'
+    }}>
+      <h3 style={{
+        fontSize: '1.125rem',
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: '1rem'
+      }}>
+        Category Performance
+      </h3>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '1rem'
+      }}>
+        {data.current.categories.map((category, index) => {
+          const categoryViews = data.current.videos
+            .filter(video => video.category === category.category)
+            .reduce((sum, video) => sum + video.views, 0);
+          const avgCategoryViews = Math.round(categoryViews / Math.max(category.count, 1));
+          
+          return (
+            <div key={index} style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '1rem',
+              backgroundColor: '#f8fafc',
+              borderRadius: '0.5rem'
             }}>
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: '#111827',
-                marginBottom: '1rem'
-              }}>
-                Category Performance
-              </h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '1rem'
-              }}>
-                {data.current.categories.map((category, index) => {
-                  const categoryViews = data.current.videos
-                    .filter(video => video.category === category.category)
-                    .reduce((sum, video) => sum + video.views, 0);
-                  const avgCategoryViews = Math.round(categoryViews / Math.max(category.count, 1));
-                  
-                  return (
-                    <div key={index} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '1rem',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: '0.5rem'
-                    }}>
-                      <div>
-                        <p style={{
-                          fontWeight: '500',
-                          color: '#111827',
-                          marginBottom: '0.25rem'
-                        }}>
-                          {category.category}
-                        </p>
-                        <p style={{
-                          fontSize: '0.875rem',
-                          color: '#6b7280'
-                        }}>
-                          {category.count} videos
-                        </p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{
-                          fontWeight: '600',
-                          color: '#111827'
-                        }}>
-                          {formatNumber(categoryViews)}
-                        </p>
-                        <p style={{
-                          fontSize: '0.875rem',
-                          color: '#6b7280'
-                        }}>
-                          {formatNumber(avgCategoryViews)} avg
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div>
+                <p style={{
+                  fontWeight: '500',
+                  color: '#111827',
+                  marginBottom: '0.25rem'
+                }}>
+                  {category.category}
+                </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#6b7280'
+                }}>
+                  {category.count} videos
+                </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{
+                  fontWeight: '600',
+                  color: '#111827'
+                }}>
+                  {formatNumber(categoryViews)}
+                </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#6b7280'
+                }}>
+                  {formatNumber(avgCategoryViews)} avg
+                </p>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })}
+      </div>
+    </div>
+  </div>
+)}
       </main>
 
       <style jsx>{`
