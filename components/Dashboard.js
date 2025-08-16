@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Eye, Video, Calendar, Users, ThumbsUp, MessageCircle, BarChart3, Minus, LogOut } from 'lucide-react';
+import { TrendingUp, TrendingDown, Eye, Video, Calendar, Users, ThumbsUp, MessageCircle, BarChart3, Minus, LogOut, ChevronUp, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/router';
 
 const Dashboard = () => {
@@ -8,6 +8,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const router = useRouter();
 
   useEffect(() => {
@@ -55,6 +56,61 @@ const Dashboard = () => {
     if (change > 0) return 'text-green-600';
     if (change < 0) return 'text-red-600';
     return 'text-gray-400';
+  };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortedVideos = () => {
+    if (!data || !data.current.videos) return [];
+    
+    let sortableVideos = [...data.current.videos];
+    
+    if (sortConfig.key) {
+      sortableVideos.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        // Handle date sorting
+        if (sortConfig.key === 'publishedAt') {
+          aValue = new Date(aValue);
+          bValue = new Date(bValue);
+        }
+        
+        // Handle string sorting (for category and title)
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+        
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    } else {
+      // Default sort by views (highest first)
+      sortableVideos.sort((a, b) => b.views - a.views);
+    }
+    
+    return sortableVideos;
+  };
+
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return <ChevronUp className="w-4 h-4 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' ? 
+      <ChevronUp className="w-4 h-4 text-gray-600" /> : 
+      <ChevronDown className="w-4 h-4 text-gray-600" />;
   };
 
   if (loading) {
@@ -516,93 +572,187 @@ const Dashboard = () => {
                 }}>
                   All Videos
                 </h3>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#6b7280',
+                  marginTop: '0.25rem'
+                }}>
+                  Click column headers to sort
+                </p>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ backgroundColor: '#f8fafc' }}>
                     <tr>
-                      <th style={{
-                        padding: '0.75rem 1.5rem',
-                        textAlign: 'left',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        color: '#6b7280',
-                        textTransform: 'uppercase'
-                      }}>Title</th>
-                      <th style={{
-                        padding: '0.75rem 1.5rem',
-                        textAlign: 'left',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        color: '#6b7280',
-                        textTransform: 'uppercase'
-                      }}>Published</th>
-                      <th style={{
-                        padding: '0.75rem 1.5rem',
-                        textAlign: 'left',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        color: '#6b7280',
-                        textTransform: 'uppercase'
-                      }}>Views</th>
-                      <th style={{
-                        padding: '0.75rem 1.5rem',
-                        textAlign: 'left',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        color: '#6b7280',
-                        textTransform: 'uppercase'
-                      }}>Category</th>
+                      <th 
+                        onClick={() => handleSort('title')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          textAlign: 'left',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          Title
+                          {getSortIcon('title')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSort('publishedAt')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          textAlign: 'left',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          Published
+                          {getSortIcon('publishedAt')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSort('views')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          textAlign: 'left',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          Views
+                          {getSortIcon('views')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSort('likes')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          textAlign: 'left',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          Likes
+                          {getSortIcon('likes')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSort('comments')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          textAlign: 'left',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          Comments
+                          {getSortIcon('comments')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSort('category')}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          textAlign: 'left',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          Category
+                          {getSortIcon('category')}
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.current.videos
-                      .slice()
-                      .sort((a, b) => b.views - a.views)
-                      .map((video, index) => (
-                        <tr key={video.id || index} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                          <td style={{
-                            padding: '1rem 1.5rem',
-                            fontSize: '0.875rem',
-                            fontWeight: '500',
-                            color: '#111827',
-                            maxWidth: '300px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                    {getSortedVideos().map((video, index) => (
+                      <tr key={video.id || index} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{
+                          padding: '1rem 1.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: '500',
+                          color: '#111827',
+                          maxWidth: '300px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {video.title}
+                        </td>
+                        <td style={{
+                          padding: '1rem 1.5rem',
+                          fontSize: '0.875rem',
+                          color: '#6b7280'
+                        }}>
+                          {new Date(video.publishedAt).toLocaleDateString()}
+                        </td>
+                        <td style={{
+                          padding: '1rem 1.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: '500',
+                          color: '#111827'
+                        }}>
+                          {formatNumber(video.views)}
+                        </td>
+                        <td style={{
+                          padding: '1rem 1.5rem',
+                          fontSize: '0.875rem',
+                          color: '#111827'
+                        }}>
+                          {video.likes}
+                        </td>
+                        <td style={{
+                          padding: '1rem 1.5rem',
+                          fontSize: '0.875rem',
+                          color: '#111827'
+                        }}>
+                          {video.comments}
+                        </td>
+                        <td style={{ padding: '1rem 1.5rem' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            borderRadius: '9999px',
+                            backgroundColor: '#e0f2fe',
+                            color: '#0369a1'
                           }}>
-                            {video.title}
-                          </td>
-                          <td style={{
-                            padding: '1rem 1.5rem',
-                            fontSize: '0.875rem',
-                            color: '#6b7280'
-                          }}>
-                            {new Date(video.publishedAt).toLocaleDateString()}
-                          </td>
-                          <td style={{
-                            padding: '1rem 1.5rem',
-                            fontSize: '0.875rem',
-                            fontWeight: '500',
-                            color: '#111827'
-                          }}>
-                            {formatNumber(video.views)}
-                          </td>
-                          <td style={{ padding: '1rem 1.5rem' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              padding: '0.25rem 0.5rem',
-                              fontSize: '0.75rem',
-                              fontWeight: '600',
-                              borderRadius: '9999px',
-                              backgroundColor: '#e0f2fe',
-                              color: '#0369a1'
-                            }}>
-                              {video.category}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                            {video.category}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -610,238 +760,238 @@ const Dashboard = () => {
           </div>
         )}
 
-      {activeTab === 'trends' && (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-    {/* Views Growth Chart */}
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-      padding: '1.5rem'
-    }}>
-     <h3 style={{
-  fontSize: '1.125rem',
-  fontWeight: '600',
-  color: '#111827',
-  marginBottom: '0.5rem'
-}}>
-  Cumulative Channel Views, Not Daily Views (30 Days)
-</h3>
-<p style={{
-  fontSize: '0.875rem',
-  color: '#6b7280',
-  marginBottom: '1rem'
-}}>
-  Shows total accumulated views across all videos over time.
-</p>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data.trends}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis 
-            dataKey="date" 
-            tick={{ fontSize: 12 }}
-            tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          />
-          <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip 
-           formatter={(value) => [formatNumber(value), 'Cumulative Views']}
-            labelFormatter={(label) => new Date(label).toLocaleDateString()}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="views" 
-            stroke="#475569" 
-            strokeWidth={3}
-            dot={{ fill: '#475569', strokeWidth: 2, r: 4 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-
-    {/* Video Count Growth */}
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-      padding: '1.5rem'
-    }}>
-      <h3 style={{
-        fontSize: '1.125rem',
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: '1rem'
-      }}>
-        Video Publishing Activity
-      </h3>
-<ResponsiveContainer width="100%" height={250}>
-  <AreaChart data={data.trends}>
-    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-    <XAxis 
-      dataKey="date" 
-      tick={{ fontSize: 12 }}
-      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-    />
-    <YAxis tick={{ fontSize: 12 }} />
-    <Tooltip 
-      formatter={(value, name, props) => {
-        const date = props.payload.date;
-        const videosOnDate = data.current.videos.filter(video => 
-          video.publishedAt.split('T')[0] === date
-        );
-        
-        if (videosOnDate.length === 0) {
-          return [value, 'Videos Published'];
-        }
-        
-        const videoTitles = videosOnDate.map(video => `• ${video.title}`).join('\n');
-        return [
-          `${value} video${value !== 1 ? 's' : ''} published:\n${videoTitles}`,
-          'Videos Published'
-        ];
-      }}
-      labelFormatter={(label) => new Date(label).toLocaleDateString()}
-      contentStyle={{
-        backgroundColor: 'white',
-        border: '1px solid #e2e8f0',
-        borderRadius: '0.375rem',
-        padding: '0.75rem',
-        maxWidth: '400px',
-        whiteSpace: 'pre-line'
-      }}
-    />
-    <Area 
-      type="monotone" 
-      dataKey="newVideos" 
-      stroke="#10b981" 
-      fill="#10b981" 
-      fillOpacity={0.3} 
-    />
-  </AreaChart>
-</ResponsiveContainer>
-    </div>
-
-    {/* Performance Summary */}
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-      padding: '1.5rem'
-    }}>
-      <h3 style={{
-        fontSize: '1.125rem',
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: '1rem'
-      }}>
-        30-Day Performance Summary
-      </h3>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1rem'
-      }}>
-        <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-          <p style={{ fontWeight: '500', color: '#111827' }}>Videos Published</p>
-          <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
-            {data.trends.reduce((sum, day) => sum + (day.newVideos || 0), 0)}
-          </p>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Last 30 days</p>
-        </div>
-        
-        <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-          <p style={{ fontWeight: '500', color: '#111827' }}>Total Growth</p>
-          <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
-            {data.trends.length > 1 ? 
-              formatNumber(data.trends[data.trends.length - 1].views - data.trends[0].views) 
-              : '0'
-            }
-          </p>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Views gained</p>
-        </div>
-        
-        <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-          <p style={{ fontWeight: '500', color: '#111827' }}>Most Popular Category</p>
-          <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
-            {data.current.categories.sort((a, b) => b.count - a.count)[0]?.category || 'N/A'}
-          </p>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-            {data.current.categories.sort((a, b) => b.count - a.count)[0]?.count || 0} videos
-          </p>
-        </div>
-      </div>
-    </div>
-
-    {/* Category Performance */}
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-      padding: '1.5rem'
-    }}>
-      <h3 style={{
-        fontSize: '1.125rem',
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: '1rem'
-      }}>
-        Category Performance
-      </h3>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '1rem'
-      }}>
-        {data.current.categories.map((category, index) => {
-          const categoryViews = data.current.videos
-            .filter(video => video.category === category.category)
-            .reduce((sum, video) => sum + video.views, 0);
-          const avgCategoryViews = Math.round(categoryViews / Math.max(category.count, 1));
-          
-          return (
-            <div key={index} style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '1rem',
-              backgroundColor: '#f8fafc',
-              borderRadius: '0.5rem'
+        {activeTab === 'trends' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Views Growth Chart */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              padding: '1.5rem'
             }}>
-              <div>
-                <p style={{
-                  fontWeight: '500',
-                  color: '#111827',
-                  marginBottom: '0.25rem'
-                }}>
-                  {category.category}
-                </p>
-                <p style={{
-                  fontSize: '0.875rem',
-                  color: '#6b7280'
-                }}>
-                  {category.count} videos
-                </p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{
-                  fontWeight: '600',
-                  color: '#111827'
-                }}>
-                  {formatNumber(categoryViews)}
-                </p>
-                <p style={{
-                  fontSize: '0.875rem',
-                  color: '#6b7280'
-                }}>
-                  {formatNumber(avgCategoryViews)} avg
-                </p>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#111827',
+                marginBottom: '0.5rem'
+              }}>
+                Cumulative Channel Views (30 Days)
+              </h3>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                marginBottom: '1rem'
+              }}>
+                Shows total accumulated views across all videos over time
+              </p>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={data.trends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    formatter={(value) => [formatNumber(value), 'Cumulative Views']}
+                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="views" 
+                    stroke="#475569" 
+                    strokeWidth={3}
+                    dot={{ fill: '#475569', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Video Count Growth */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              padding: '1.5rem'
+            }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+              fontWeight: '600',
+                color: '#111827',
+                marginBottom: '1rem'
+              }}>
+                Video Publishing Activity
+              </h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={data.trends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    formatter={(value, name, props) => {
+                      const date = props.payload.date;
+                      const videosOnDate = data.current.videos.filter(video => 
+                        video.publishedAt.split('T')[0] === date
+                      );
+                      
+                      if (videosOnDate.length === 0) {
+                        return [value, 'Videos Published'];
+                      }
+                      
+                      const videoTitles = videosOnDate.map(video => `• ${video.title}`).join('\n');
+                      return [
+                        `${value} video${value !== 1 ? 's' : ''} published:\n${videoTitles}`,
+                        'Videos Published'
+                      ];
+                    }}
+                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '0.375rem',
+                      padding: '0.75rem',
+                      maxWidth: '400px',
+                      whiteSpace: 'pre-line'
+                    }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="newVideos" 
+                    stroke="#10b981" 
+                    fill="#10b981" 
+                    fillOpacity={0.3} 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Performance Summary */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              padding: '1.5rem'
+            }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#111827',
+                marginBottom: '1rem'
+              }}>
+                30-Day Performance Summary
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1rem'
+              }}>
+                <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
+                  <p style={{ fontWeight: '500', color: '#111827' }}>Videos Published</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
+                    {data.trends.reduce((sum, day) => sum + (day.newVideos || 0), 0)}
+                  </p>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Last 30 days</p>
+                </div>
+                
+                <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
+                  <p style={{ fontWeight: '500', color: '#111827' }}>Total Growth</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
+                    {data.trends.length > 1 ? 
+                      formatNumber(data.trends[data.trends.length - 1].views - data.trends[0].views) 
+                      : '0'
+                    }
+                  </p>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Views gained</p>
+                </div>
+                
+                <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
+                  <p style={{ fontWeight: '500', color: '#111827' }}>Most Popular Category</p>
+                  <p style={{ fontSize: '1.5rem', fontWeight: '600', color: '#475569' }}>
+                    {data.current.categories.sort((a, b) => b.count - a.count)[0]?.category || 'N/A'}
+                  </p>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    {data.current.categories.sort((a, b) => b.count - a.count)[0]?.count || 0} videos
+                  </p>
+                </div>
               </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
-  </div>
-)}
+
+            {/* Category Performance */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              padding: '1.5rem'
+            }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#111827',
+                marginBottom: '1rem'
+              }}>
+                Category Performance
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1rem'
+              }}>
+                {data.current.categories.map((category, index) => {
+                  const categoryViews = data.current.videos
+                    .filter(video => video.category === category.category)
+                    .reduce((sum, video) => sum + video.views, 0);
+                  const avgCategoryViews = Math.round(categoryViews / Math.max(category.count, 1));
+                  
+                  return (
+                    <div key={index} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '1rem',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '0.5rem'
+                    }}>
+                      <div>
+                        <p style={{
+                          fontWeight: '500',
+                          color: '#111827',
+                          marginBottom: '0.25rem'
+                        }}>
+                          {category.category}
+                        </p>
+                        <p style={{
+                          fontSize: '0.875rem',
+                          color: '#6b7280'
+                        }}>
+                          {category.count} videos
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{
+                          fontWeight: '600',
+                          color: '#111827'
+                        }}>
+                          {formatNumber(categoryViews)}
+                        </p>
+                        <p style={{
+                          fontSize: '0.875rem',
+                          color: '#6b7280'
+                        }}>
+                          {formatNumber(avgCategoryViews)} avg
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <style jsx>{`
