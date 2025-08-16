@@ -1,7 +1,6 @@
 function convertYouTubeDuration(duration) {
   if (!duration) return 0;
   
-  // YouTube duration format: PT4M13S = 4 minutes 13 seconds
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return 0;
   
@@ -15,12 +14,10 @@ function convertYouTubeDuration(duration) {
 function categorizeVideo(title, description, duration) {
   const titleLower = title.toLowerCase();
   
-  // Check if it's a podcast episode based on duration FIRST (20+ minutes = 1200+ seconds)
   if (duration && duration >= 1200) {
     return 'Podcast Episode';
   }
   
-  // Then check for hashtag categories
   if (titleLower.includes('#short')) {
     return 'Short';
   }
@@ -33,14 +30,85 @@ function categorizeVideo(title, description, duration) {
     return 'Missionary Moment';
   }
   
-  // Everything else is Other
   return 'Other';
+}
+
+function getDateDaysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+}
+
+function calculateTrends(videos) {
+  // Group videos by publish date
+  const videosByDate = {};
+  
+  videos.forEach(video => {
+    const date = video.publishedAt.split('T')[0];
+    if (!videosByDate[date]) {
+      videosByDate[date] = [];
+    }
+    videosByDate[date].push(video);
+  });
+
+  // Create trend data for last 30 days
+  const trends = [];
+  let cumulativeViews = 0;
+  let cumulativeVideos = 0;
+
+  for (let i = 29; i >= 0; i--) {
+    const date = getDateDaysAgo(i);
+    const videosOnDate = videosByDate[date] || [];
+    
+    // Add new videos published on this date
+    cumulativeVideos += videosOnDate.length;
+    
+    // Calculate total views up to this date (all videos published by this date)
+    const viewsUpToDate = videos
+      .filter(v => v.publishedAt.split('T')[0] <= date)
+      .reduce((sum, v) => sum + v.views, 0);
+    
+    const avgViews = cumulativeVideos > 0 ? Math.round(viewsUpToDate / cumulativeVideos) : 0;
+    
+    trends.push({
+      date,
+      views: viewsUpToDate,
+      videos: cumulativeVideos,
+      avgViews: avgViews,
+      newVideos: videosOnDate.length
+    });
+  }
+
+  return trends;
+}
+
+function calculateComparisons(currentData, trends) {
+  const today = trends[trends.length - 1];
+  const yesterday = trends[trends.length - 2];
+  const lastWeek = trends[trends.length - 8];
+  const lastMonth = trends[0];
+
+  return {
+    yesterday: yesterday ? {
+      views: today.views - yesterday.views,
+      videos: today.videos - yesterday.videos,
+      avgViews: today.avgViews - yesterday.avgViews
+    } : null,
+    lastWeek: lastWeek ? {
+      views: today.views - lastWeek.views,
+      videos: today.videos - lastWeek.videos,
+      avgViews: today.avgViews - lastWeek.avgViews
+    } : null,
+    lastMonth: lastMonth ? {
+      views: today.views - lastMonth.views,
+      videos: today.videos - lastMonth.videos,
+      avgViews: today.avgViews - lastMonth.avgViews
+    } : null
+  };
 }
 
 export default async function handler(req, res) {
   try {
-    // Since file storage doesn't persist in serverless, 
-    // let's redirect to fetch fresh data from YouTube API
     const API_KEY = process.env.YOUTUBE_API_KEY;
     const CHANNEL_ID = process.env.CHANNEL_ID;
     
@@ -56,7 +124,7 @@ export default async function handler(req, res) {
     );
     const channelData = await channelResponse.json();
 
-    // Get videos from the channel
+    // Get videos from the channel (get more for better trend analysis)
     const videosResponse = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&maxResults=50&order=date&type=video&key=${API_KEY}`
     );
@@ -71,7 +139,6 @@ export default async function handler(req, res) {
 
     // Process the data
     const processedVideos = statsData.items?.map(video => {
-      // Convert YouTube duration format (PT4M13S) to seconds
       const duration = convertYouTubeDuration(video.contentDetails?.duration);
       
       return {
@@ -121,21 +188,14 @@ export default async function handler(req, res) {
       }
     };
 
+    // Calculate trends and comparisons
+    const trends = calculateTrends(processedVideos);
+    const comparisons = calculateComparisons(currentData, trends);
+
     res.status(200).json({
       current: currentData,
-      comparisons: {
-        yesterday: null,
-        lastWeek: null,
-        lastMonth: null
-      },
-      trends: [
-        {
-          date: currentData.date,
-          views: currentData.summary.totalViews,
-          videos: currentData.summary.totalVideos,
-          avgViews: currentData.summary.avgViews
-        }
-      ],
+      comparisons,
+      trends,
       lastUpdated: currentData.timestamp
     });
 
