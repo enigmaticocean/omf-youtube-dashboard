@@ -127,9 +127,9 @@ const Dashboard = () => {
     fill: categoryColors[index % categoryColors.length]
   }));
 
-  const topPerformer = data.current.videos.reduce((top, current) => 
-    current.views > (top?.views || 0) ? current : top, null
-  );
+ const latestVideo = data.current.videos.reduce((latest, current) => 
+  new Date(current.publishedAt) > new Date(latest?.publishedAt || '1970-01-01') ? current : latest, null
+);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
