@@ -102,21 +102,27 @@ export default async function handler(req, res) {
   }
 }
 
-function categorizeVideo(title, description) {
-  const text = (title + ' ' + description).toLowerCase();
+function categorizeVideo(title, description, duration) {
+  const titleLower = title.toLowerCase();
   
-  if (text.includes('testimony') || text.includes('story') || text.includes('personal')) {
-    return 'Testimony/Personal Story';
-  } else if (text.includes('introduction') || text.includes('program')) {
-    return 'Program Introduction';
-  } else if (text.includes('cultural') || text.includes('culture')) {
-    return 'Cultural Reflection';
-  } else if (text.includes('virtual') || text.includes('experience')) {
-    return 'Virtual Experience';
-  } else if (text.includes('promotional') || text.includes('intro')) {
-    return 'Promotional/Intro';
-  } else if (text.includes('mission') || text.includes('outreach')) {
-    return 'Mission/Outreach';
+  // Check for hashtag categories first
+  if (titleLower.includes('#short')) {
+    return 'Short';
   }
+  
+  if (titleLower.includes('#podcast')) {
+    return 'Podcast Promo';
+  }
+  
+  if (titleLower.includes('#missionarymoment')) {
+    return 'Missionary Moment';
+  }
+  
+  // Check if it's a podcast episode based on duration (20+ minutes = 1200+ seconds)
+  if (duration && duration >= 1200) {
+    return 'Podcast Episode';
+  }
+  
+  // Everything else is Other
   return 'Other';
 }
