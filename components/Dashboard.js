@@ -127,9 +127,9 @@ const Dashboard = () => {
     fill: categoryColors[index % categoryColors.length]
   }));
 
- const latestVideo = data.current.videos.reduce((latest, current) => 
-  new Date(current.publishedAt) > new Date(latest?.publishedAt || '1970-01-01') ? current : latest, null
-);
+  const latestVideo = data.current.videos.reduce((latest, current) => 
+    new Date(current.publishedAt) > new Date(latest?.publishedAt || '1970-01-01') ? current : latest, null
+  );
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -404,7 +404,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-{/* Charts */}
+            {/* Charts */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
@@ -447,52 +447,52 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Latest Video Results */}
+            {/* Latest Video */}
             {latestVideo && (
-  <div style={{
-    background: 'linear-gradient(90deg, #475569 0%, #334155 100%)',
-    borderRadius: '0.5rem',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    padding: '1.5rem',
-    color: 'white'
-  }}>
-    <h3 style={{
-      fontSize: '1.125rem',
-      fontWeight: '600',
-      marginBottom: '0.5rem'
-    }}>
-      🆕 Latest Video
-    </h3>
-    <p style={{
-      fontSize: '1.25rem',
-      fontWeight: '500',
-      marginBottom: '0.5rem'
-    }}>
-      {latestVideo.title}
-    </p>
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      flexWrap: 'wrap',
-      gap: '1rem'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <span style={{ opacity: 0.9 }}>
-          {formatNumber(latestVideo.views)} views
-        </span>
-        <span style={{ opacity: 0.9 }}>
-          {latestVideo.likes} likes
-        </span>
-        <span style={{ opacity: 0.9 }}>
-          {latestVideo.category}
-        </span>
-      </div>
-      <span style={{ opacity: 0.9 }}>
-        {new Date(latestVideo.publishedAt).toLocaleDateString()}
-      </span>
-    </div>
-  </div>
-)}
+              <div style={{
+                background: 'linear-gradient(90deg, #475569 0%, #334155 100%)',
+                borderRadius: '0.5rem',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                padding: '1.5rem',
+                color: 'white'
+              }}>
+                <h3 style={{
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>
+                  🆕 Latest Video
+                </h3>
+                <p style={{
+                  fontSize: '1.25rem',
+                  fontWeight: '500',
+                  marginBottom: '0.5rem'
+                }}>
+                  {latestVideo.title}
+                </p>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '1rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <span style={{ opacity: 0.9 }}>
+                      {formatNumber(latestVideo.views)} views
+                    </span>
+                    <span style={{ opacity: 0.9 }}>
+                      {latestVideo.likes} likes
+                    </span>
+                    <span style={{ opacity: 0.9 }}>
+                      {latestVideo.category}
+                    </span>
+                  </div>
+                  <span style={{ opacity: 0.9 }}>
+                    {new Date(latestVideo.publishedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
