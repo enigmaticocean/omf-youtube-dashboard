@@ -15,7 +15,12 @@ function convertYouTubeDuration(duration) {
 function categorizeVideo(title, description, duration) {
   const titleLower = title.toLowerCase();
   
-  // Check for hashtag categories first
+  // Check if it's a podcast episode based on duration FIRST (20+ minutes = 1200+ seconds)
+  if (duration && duration >= 1200) {
+    return 'Podcast Episode';
+  }
+  
+  // Then check for hashtag categories
   if (titleLower.includes('#short')) {
     return 'Short';
   }
@@ -26,11 +31,6 @@ function categorizeVideo(title, description, duration) {
   
   if (titleLower.includes('#missionarymoment')) {
     return 'Missionary Moment';
-  }
-  
-  // Check if it's a podcast episode based on duration (20+ minutes = 1200+ seconds)
-  if (duration && duration >= 1200) {
-    return 'Podcast Episode';
   }
   
   // Everything else is Other
